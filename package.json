@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "name": "spotify-guessing-game",
+  "version": "1.0.0",
+  "description": "Full-stack Spotify guessing game application",
+  "scripts": {
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install",
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm start",
+    "build:client": "cd client && npm run build"
+  }
+}
