@@ -8,5 +8,9 @@
     "start:server": "cd server && npm start",
     "start:client": "cd client && npm start",
     "build:client": "cd client && npm run build"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "tailwindcss": "^4.2.2"
   }
 }
