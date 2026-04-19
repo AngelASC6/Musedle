@@ -34,3 +34,6 @@ export const pauseSong = () =>
 
 export const fetchCurrentPlayback = () =>
   withTokenRefresh(() => spotifyApi.getMyCurrentPlaybackState());
+
+export const fetchTrackInfo = (trackName) => 
+  withTokenRefresh(() => spotifyApi.search(trackName, ['track'], { limit: 7 }))

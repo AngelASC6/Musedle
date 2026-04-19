@@ -2,6 +2,11 @@
 
 A full-stack application where users authenticate with Spotify and play a guessing game based on their listening history.
 
+running the project -> 
+npm run start:server
+npm run start:client
+
+
 ## Project Structure
 
 ```

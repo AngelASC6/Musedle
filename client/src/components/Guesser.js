@@ -24,6 +24,10 @@ export default function Guesser({
     playSong(randomSong.track.uri, deviceId, refreshToken);
   const handleToggle = () => player?.togglePlay();
 
+  const searchTrack =() =>{
+    
+  }
+
   return (
     <div>
       {randomSong && (
