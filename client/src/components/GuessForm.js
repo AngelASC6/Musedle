@@ -23,7 +23,7 @@ export default function GuessForm({song, handleChange}){
                 setSuggestions([])
                 setShowSuggestions(false)
             }
-        }, 1000)
+        }, 500)
 
         return () => clearTimeout(delayDebounce)
     }, [guess, selectedTrack])

@@ -67,7 +67,7 @@ export default function GuessFeedbackCard({ song, guess, feedbackType, children 
     };
 
     return (
-        <div className={`w-24 h-24 ${getBackgroundColor()} flex flex-col justify-center items-center rounded-lg text-white font-semibold text-sm overflow-hidden p-1 line-clamp-3`}>
+        <div className={`w-32 h-32 ${getBackgroundColor()} flex flex-col justify-center items-center rounded-lg text-white font-semibold text-sm overflow-hidden p-1 line-clamp-3`}>
             {children}
         </div>
     );

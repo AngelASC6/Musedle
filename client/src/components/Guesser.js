@@ -46,7 +46,7 @@ export default function Guesser({
       {randomSong && (
         <div>
           <ProgressBar position={position} duration={duration} />
-          <div className="flex flex-none flex-col w-3/5 gap-2">
+          <div className="flex flex-none flex-col gap-2 justify-self-center">
           {guesses.map(({ id, guess }) => (
             <GuessFeedback key={id} song={randomSong} guess={guess} />
           ))}
