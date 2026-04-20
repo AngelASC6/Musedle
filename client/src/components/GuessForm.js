@@ -39,11 +39,22 @@ export default function GuessForm({song, handleChange}){
     }
 
     const handleSubmit = () => {
-        handleChange(selectedTrack?.name || suggestions[0].name)
+        const trackToSubmit = selectedTrack || suggestions[0];
+        if (!trackToSubmit) return;
+        
+        handleChange(trackToSubmit)
         setGuess("")
         setSelectedTrack(null)
         setSuggestions([])
     }
+
+    // Reset form when song prop changes
+    useEffect(() => {
+        setGuess("")
+        setSelectedTrack(null)
+        setSuggestions([])
+        setShowSuggestions(false)
+    }, [song])
 
     return(
         <div className="flex gap-1">
@@ -76,7 +87,13 @@ export default function GuessForm({song, handleChange}){
                 )}
             </div>
             
-            <button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded m-2">Submit</button>
+            <button 
+                onClick={handleSubmit} 
+                disabled={!selectedTrack && suggestions.length === 0}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded m-2"
+            >
+                Submit
+            </button>
         </div>
     )
 }

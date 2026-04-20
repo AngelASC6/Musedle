@@ -14,7 +14,7 @@ export default function SpotifyGuessingGame({
   refreshToken,
   handleLogout,
 }) {
-  const { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer } =
+  const { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer, reconnect } =
     useSpotifyPlayer(spotifyToken);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [randomSong, setRandomSong] = useState(null);
@@ -33,11 +33,21 @@ export default function SpotifyGuessingGame({
       const selectedSong = songs[Math.floor(Math.random() * songs.length)];
       setRandomPlaylist(playlist);
       setRandomSong(selectedSong);
+      resetPlayer();
       
-      // Reset position and play the new song to update duration
+      // Try to play the song if device is available
       if (deviceId && selectedSong) {
-        resetPlayer();
-        await playSong(selectedSong.track.uri, deviceId);
+        try {
+          await playSong(selectedSong.track.uri, deviceId);
+          console.log("Song loaded successfully");
+        } catch (playError) {
+          console.warn('Could not auto-play song:', playError?.message || playError);
+          // Continue anyway - user can click play button
+        }
+      } else if (!deviceId && player) {
+        // If device is disconnected, attempt to reconnect
+        console.log("Device disconnected, attempting to reconnect...");
+        reconnect();
       }
     } catch (error) {
       console.error('Error getting random playlist:', error);
@@ -84,11 +94,9 @@ export default function SpotifyGuessingGame({
         randomSong={randomSong}
         randomPlaylist={randomPlaylist}
         isPlaying={isPlaying}
-        deviceId={deviceId}
         position={position}
         duration={duration}
         player={player}
-        refreshToken={refreshToken}
       />
     </div>
   );

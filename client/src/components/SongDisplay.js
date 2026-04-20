@@ -11,7 +11,7 @@ const SongDisplay = ({ song, playlist, isPlaying, deviceId, onPlay, onToggle }) 
       <h3>by {artistNames}</h3>
       <h3>Playlist: {playlist.name}</h3>
       {albumArt && (
-        <img style={{ width: '20%' }} src={albumArt} alt="Album art" />
+        <img style={{ width: '5%' }} src={albumArt} alt="Album art" />
       )}
       <div className="controls">
         <button onClick={onPlay} disabled={!deviceId} className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded m-2">

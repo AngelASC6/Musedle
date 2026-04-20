@@ -75,5 +75,11 @@ export const useSpotifyPlayer = (spotifyToken) => {
     setPosition(0);
   };
 
-  return { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer };
+  const reconnect = () => {
+    if (player) {
+      player.connect();
+    }
+  };
+
+  return { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer, reconnect };
 };
