@@ -1,6 +1,6 @@
 # Spotify Guessing Game
 
-A full-stack application where users authenticate with Spotify and play a guessing game based on their listening history.
+A full-stack application where users authenticate with Spotify and play a guessing game based on their listening history. This app is currently in progress with an expected 1.0 releasing mid-late May.
 
 running the project -> 
 npm run start:server
