@@ -30,7 +30,7 @@ export default function GuessFeedbackCard({ song, guess, feedbackType, children 
             if (songYear === guessYear){
                 return correct
             }
-            if (diff <= 5){
+            if (diff <= 3){
                 return close
             }
             return incorrect
@@ -67,7 +67,7 @@ export default function GuessFeedbackCard({ song, guess, feedbackType, children 
     };
 
     return (
-        <div className={`flex-1 ${getBackgroundColor()} aspect-square flex flex-col justify-center items-center rounded-lg text-white font-semibold`}>
+        <div className={`w-24 h-24 ${getBackgroundColor()} flex flex-col justify-center items-center rounded-lg text-white font-semibold text-sm overflow-hidden p-1 line-clamp-3`}>
             {children}
         </div>
     );

@@ -8,8 +8,11 @@ export default function GuessFeedback({ guess, song }) {
     return artists?.map((artist) => artist.name).join(", ") || "Unknown Artist";
   };
 
+  
+
   return (
-    <div className="flex gap-4 w-2/3">
+    <div className="flex gap-4 w-full">
+
         <GuessFeedbackCard song={songTrack} guess={guessTrack} feedbackType="image">{
         <img src={guessTrack?.album.images[0]?.url} className="w-full"/> || "no guess"}
         </GuessFeedbackCard>

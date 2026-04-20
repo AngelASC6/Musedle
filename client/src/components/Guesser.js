@@ -12,18 +12,23 @@ export default function Guesser({
   duration,
   player,
 }) {
-  const [currentGuess, setCurrentGuess] = useState("");
   const [resetKey, setResetKey] = useState(0);
+  const [guesses, setGuesses] = useState([]);
 
   useEffect(() => {
-    // Reset guess when a new song is loaded
-    setCurrentGuess("");
     setResetKey(prev => prev + 1);
+    setGuesses([]);  // Reset guesses on new song
   }, [randomSong]);
 
-  const handleUpdateGuess = (guess) => {
-    setCurrentGuess(guess);
-    console.log(randomSong.track)
+  const handleUpdateGuess = (trackObject) => {
+    // GuessForm passes a track object when a user submits
+    if (trackObject) {
+      setGuesses(prev => [
+        ...prev,
+        { id: Date.now(), guess: trackObject }
+      ]);
+      console.log(randomSong)
+    }
   };
 
   const handlePlay = () => {
@@ -33,36 +38,24 @@ export default function Guesser({
     }
     player.togglePlay();
   };
-  
-  const handleToggle = () => player?.togglePlay();
 
-  const searchTrack =() =>{
-    //if guess is wrong return guess info
-  }
+  const handleToggle = () => player?.togglePlay();
 
   return (
     <div>
-      {/* {randomSong && (
-        <SongDisplay
-          song={randomSong}
-          playlist={randomPlaylist}
-          isPlaying={isPlaying}
-          deviceId={deviceId}
-          onPlay={handlePlay}
-          onToggle={handleToggle}
-        />
-      )} */}
       {randomSong && (
         <div>
           <ProgressBar position={position} duration={duration} />
-          <p>
-            {currentGuess.name === randomSong.track.name
-              ? "Correct :)"
-              : "Wrong :("}
-              {/* {currentGuess.album.release_date} */}
-          </p>
-          <GuessFeedback song={randomSong} guess={currentGuess}/>
-          <GuessForm key={resetKey} song={randomSong} handleChange={handleUpdateGuess} />
+          <div className="flex flex-none flex-col w-3/5 gap-2">
+          {guesses.map(({ id, guess }) => (
+            <GuessFeedback key={id} song={randomSong} guess={guess} />
+          ))}
+          </div>
+          <GuessForm
+            key={resetKey}
+            song={randomSong}
+            handleChange={handleUpdateGuess}
+          />
         </div>
       )}
     </div>
