@@ -21,7 +21,14 @@ export const useSpotifyPlayer = (spotifyToken) => {
         volume: 0.5,
       });
 
-      newPlayer.addListener("ready", ({ device_id }) => setDeviceId(device_id));
+      newPlayer.addListener("account_error", ({ message }) => {
+        console.error("Account Error (SDK rejected):", message);
+      });
+
+      newPlayer.addListener("ready", ({ device_id }) => {
+        console.log("SDK ready, device_id:", device_id);
+        setDeviceId(device_id);
+      });
       newPlayer.addListener("not_ready", () => setDeviceId(null));
       newPlayer.addListener("initialization_error", ({ message }) =>
         console.error("Init Error:", message),
@@ -81,5 +88,14 @@ export const useSpotifyPlayer = (spotifyToken) => {
     }
   };
 
-  return { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer, reconnect };
+  return {
+    player,
+    deviceId,
+    isPlaying,
+    position,
+    duration,
+    disconnect,
+    resetPlayer,
+    reconnect,
+  };
 };

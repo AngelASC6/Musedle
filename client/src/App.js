@@ -18,7 +18,7 @@ function App() {
     return <a href="http://127.0.0.1:8888/login">Login with Spotify</a>;
 
   return (
-    <div className="App">
+    <div className="App min-h-screen">
       <SpotifyGuessingGame spotifyToken={spotifyToken} loggedIn={loggedIn} refreshToken={refreshToken} handleLogout={handleLogout}/>
     </div>
   );

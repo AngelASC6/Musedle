@@ -45,8 +45,18 @@ const withTokenRefresh = async (fn) => {
   }
 };
 
+
+export const transferPlayback = (device_id) =>
+  withTokenRefresh(() => spotifyApi.transferMyPlayback([device_id],{play:false}))
+
+export const fetchAvailableDevices = () =>
+  withTokenRefresh(() => spotifyApi.getMyDevices());
+
 export const fetchUserPlaylists = () =>
   withTokenRefresh(() => spotifyApi.getUserPlaylists());
+
+export const fetchUserSavedSongs = (options) => 
+  withTokenRefresh(() => spotifyApi.getMySavedTracks(options))
 
 export const fetchPlaylistTracks = (playlistId) =>
   withTokenRefresh(() => spotifyApi.getPlaylistTracks(playlistId));

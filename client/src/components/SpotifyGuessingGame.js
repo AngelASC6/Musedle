@@ -4,9 +4,24 @@ import React, { useState, useEffect } from "react";
 import {
   fetchUserPlaylists,
   fetchPlaylistTracks,
+  fetchUserSavedSongs,
   playSong,
+  fetchCurrentPlayback,
+  fetchAvailableDevices,
   setTokenRefresher,
+  transferPlayback,
 } from "../services/spotifyService";
+
+const waitForDevice = async (maxAttempts = 10, interval = 500) => {
+  for (let i = 0; i < maxAttempts; i++) {
+    const data = await fetchAvailableDevices();
+    const apiDevice = data.devices?.find(d => d.name === "Spotify Guessing Game Player");
+    console.log(`Attempt ${i + 1}: device found = ${!!apiDevice}`);
+    if (apiDevice) return apiDevice.id; // return the real API id
+    await new Promise(res => setTimeout(res, interval));
+  }
+  throw new Error("Device never appeared in Spotify's device list");
+};
 
 export default function SpotifyGuessingGame({
   spotifyToken,
@@ -14,34 +29,48 @@ export default function SpotifyGuessingGame({
   refreshToken,
   handleLogout,
 }) {
-  const { player, deviceId, isPlaying, position, duration, disconnect, resetPlayer, reconnect } =
-    useSpotifyPlayer(spotifyToken);
+  const {
+    player,
+    deviceId,
+    isPlaying,
+    position,
+    duration,
+    disconnect,
+    resetPlayer,
+    reconnect,
+  } = useSpotifyPlayer(spotifyToken);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [randomSong, setRandomSong] = useState(null);
   const [randomPlaylist, setRandomPlaylist] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const getRandomPlaylist = async () => {
+  const getRandomSong = async () => {
     if (loading) return; // Prevent rapid clicks
     setLoading(true);
-    
+
     try {
       const playlist =
-      userPlaylists[Math.floor(Math.random() * userPlaylists.length)];
+        userPlaylists[Math.floor(Math.random() * userPlaylists.length)];
+      console.log(userPlaylists);
       const data = await fetchPlaylistTracks(playlist.id);
       const songs = data.items.filter((item) => item.track);
       const selectedSong = songs[Math.floor(Math.random() * songs.length)];
       setRandomPlaylist(playlist);
       setRandomSong(selectedSong);
       resetPlayer();
-      
+
       // Try to play the song if device is available
-      if (deviceId && selectedSong) {
+      if (selectedSong) {
         try {
-          await playSong(selectedSong.track.uri, deviceId);
+          const apiDeviceId = await waitForDevice(); //waits for device to be registered before moving on
+          await transferPlayback(apiDeviceId); //registers device to prevent player not found error
+          await playSong(selectedSong.track.uri, apiDeviceId);
           console.log("Song loaded successfully");
         } catch (playError) {
-          console.warn('Could not auto-play song:', playError?.message || playError);
+          console.warn(
+            "Could not auto-play song:",
+            playError?.message || playError,
+          );
           // Continue anyway - user can click play button
         }
       } else if (!deviceId && player) {
@@ -50,7 +79,7 @@ export default function SpotifyGuessingGame({
         reconnect();
       }
     } catch (error) {
-      console.error('Error getting random playlist:', error);
+      console.error("Error getting random playlist:", error);
     } finally {
       setLoading(false);
     }
@@ -58,9 +87,18 @@ export default function SpotifyGuessingGame({
 
   useEffect(() => {
     if (!loggedIn) return;
+    console.log(loggedIn);
     setTokenRefresher(refreshToken);
-    fetchUserPlaylists().then((data) => setUserPlaylists(data.items));
+    fetchUserPlaylists().then((data) => {
+      setUserPlaylists(data.items);
+      console.log(data);
+    });
+    // console.log("Getting Saved Songs")
+    // fetchUserSavedSongs().then((data) => {
+    //   console.log("savedSongs ",data)
+    // })
   }, [loggedIn, refreshToken]); //Runs the effect when loggedIn changes or refreshToken Changes
+
   const handleLogoutClick = () => {
     disconnect();
     handleLogout();
@@ -83,7 +121,7 @@ export default function SpotifyGuessingGame({
       </p>
 
       <button
-        onClick={getRandomPlaylist}
+        onClick={getRandomSong}
         disabled={loading}
         className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded m-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
