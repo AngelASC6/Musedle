@@ -72,3 +72,5 @@ export const fetchCurrentPlayback = () =>
 
 export const fetchTrackInfo = (trackName) => 
   withTokenRefresh(() => spotifyApi.search(trackName, ['track'], { limit: 7 }))
+export const fetchArtists = (artistIds) =>
+  withTokenRefresh(() => spotifyApi.getArtists(artistIds));
