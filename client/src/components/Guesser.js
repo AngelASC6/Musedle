@@ -7,7 +7,6 @@ import { fetchArtists } from "../services/spotifyService.js";
 
 export default function Guesser({
   randomSong,
-  randomPlaylist,
   isPlaying,
   position,
   duration,

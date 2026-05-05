@@ -41,21 +41,17 @@ export default function SpotifyGuessingGame({
   } = useSpotifyPlayer(spotifyToken);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [randomSong, setRandomSong] = useState(null);
-  const [randomPlaylist, setRandomPlaylist] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingLibrary, setLoadingLibrary] = useState(false)
+  const [songPool, setSongPool] = useState([])
+
+
 
   const getRandomSong = async () => {
-    if (loading) return; // Prevent rapid clicks
+    if (loading || songPool.length === 0 || loadingLibrary ) return; // Prevent rapid clicks
     setLoading(true);
-
-    try {
-      const playlist =
-        userPlaylists[Math.floor(Math.random() * userPlaylists.length)];
-      console.log(userPlaylists);
-      const data = await fetchPlaylistTracks(playlist.id);
-      const songs = data.items.filter((item) => item.track);
-      const selectedSong = songs[Math.floor(Math.random() * songs.length)];
-      setRandomPlaylist(playlist);
+    try{
+      const selectedSong = songPool[Math.floor(Math.random() * songPool.length)];
       setRandomSong(selectedSong);
       resetPlayer();
 
@@ -84,58 +80,93 @@ export default function SpotifyGuessingGame({
       setLoading(false);
     }
   };
+useEffect(() => {
+  if (!loggedIn) return;
+  setTokenRefresher(refreshToken);
 
-  useEffect(() => {
-    if (!loggedIn) return;
-    console.log(loggedIn);
-    setTokenRefresher(refreshToken);
-    fetchUserPlaylists().then((data) => {
-      setUserPlaylists(data.items);
-      console.log(data);
-    });
-    // console.log("Getting Saved Songs")
-    // fetchUserSavedSongs().then((data) => {
-    //   console.log("savedSongs ",data)
-    // })
-  }, [loggedIn, refreshToken]); //Runs the effect when loggedIn changes or refreshToken Changes
+  let canceled = false;
+
+  const loadLibrary = async () => {
+    setLoadingLibrary(true)
+    console.log("Starting to load the libraty")
+    const data = await fetchUserPlaylists();
+    if (canceled) return
+    const playlists = data.items;
+    setUserPlaylists(playlists);
+
+    const allTracks = [];
+    for (const playlist of playlists) {
+      if(canceled) return
+      const result = await fetchPlaylistTracks(playlist.id);
+      allTracks.push(...result.items);
+    }
+
+    const seen = new Set();
+    const pool = allTracks
+      .filter(item => item.track)
+      .filter(item => {
+        if (seen.has(item.track.id)) return false;
+        seen.add(item.track.id);
+        return true;
+      });
+    if (canceled) return
+    setSongPool(pool);
+    setLoadingLibrary(false)
+    console.log("Done!")
+  };
+
+  loadLibrary();
+  return()=>{
+    canceled = true
+    setLoadingLibrary(false)
+  }
+}, [loggedIn, refreshToken]);
 
   const handleLogoutClick = () => {
     disconnect();
     handleLogout();
   };
 
+
   return (
-    <div>
-      <header className="flex bg-blue-900 w-full">
-        <h1 className="text-white py-4 px-6 text-2xl">Spotify Guessing Game</h1>
-        <button
-          onClick={handleLogoutClick}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded m-2 self-center justify-self-end"
-        >
-          Logout
-        </button>
-      </header>
-
-      <p style={{ color: deviceId ? "green" : "red" }}>
-        {deviceId ? "✓ Player Connected" : "⚠ Waiting for player..."}
-      </p>
-
+  <div>
+    <header className="flex bg-blue-900 w-full">
+      <h1 className="text-white py-4 px-6 text-2xl">Spotify Guessing Game</h1>
       <button
-        onClick={getRandomSong}
-        disabled={loading}
-        className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded m-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={handleLogoutClick}
+        className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded m-2 self-center justify-self-end"
       >
-        {loading ? "Loading..." : "Get Random Song"}
+        Logout
       </button>
+    </header>
 
-      <Guesser
-        randomSong={randomSong}
-        randomPlaylist={randomPlaylist}
-        isPlaying={isPlaying}
-        position={position}
-        duration={duration}
-        player={player}
-      />
-    </div>
-  );
+    {loadingLibrary ? (
+      <div className="flex justify-center items-center mt-16">
+        <p className="text-gray-600 text-lg">Loading your library...</p>
+      </div>
+    ) : (
+      <div>
+        <p style={{ color: deviceId ? "green" : "red" }}>
+          {deviceId ? "✓ Player Connected" : "⚠ Waiting for player..."}
+        </p>
+
+        <button
+          onClick={getRandomSong}
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded m-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Loading..." : "Get Random Song"}
+        </button>
+
+        <Guesser
+          randomSong={randomSong}
+          isPlaying={isPlaying}
+          position={position}
+          duration={duration}
+          player={player}
+        />
+      </div>
+    )}
+  </div>
+);
 }
