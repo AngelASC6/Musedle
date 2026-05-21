@@ -100,7 +100,6 @@ export default function SpotifyGuessingGame({
     position,
     duration,
     disconnect,
-    resetPlayer,
     reconnect,
   } = useSpotifyPlayer(spotifyToken);
 
@@ -118,7 +117,7 @@ export default function SpotifyGuessingGame({
       const selectedSong =
         songPool[Math.floor(Math.random() * songPool.length)];
       setRandomSong(selectedSong);
-      resetPlayer();
+      // resetPlayer();
 
       if (selectedSong) {
         try {

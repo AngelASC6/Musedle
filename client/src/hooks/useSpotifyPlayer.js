@@ -78,9 +78,10 @@ export const useSpotifyPlayer = (spotifyToken) => {
     setDuration(0);
   };
 
-  const resetPlayer = () => {
-    setPosition(0);
-  };
+  // const resetPlayer = () => {
+  //   clearInterval(intervalRef.current)
+  //   setPosition(0);
+  // };
 
   const reconnect = () => {
     if (player) {
@@ -95,7 +96,7 @@ export const useSpotifyPlayer = (spotifyToken) => {
     position,
     duration,
     disconnect,
-    resetPlayer,
+    // resetPlayer,
     reconnect,
   };
 };
