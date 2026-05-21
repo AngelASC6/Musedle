@@ -1,6 +1,6 @@
 import Guesser from "./Guesser";
 import { useSpotifyPlayer } from "../hooks/useSpotifyPlayer.js";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   fetchUserPlaylists,
   fetchPlaylistTracks,
@@ -24,7 +24,7 @@ const slimTrack = (item) => ({
     artists: item.track.artists.map((a) => ({ id: a.id, name: a.name })),
     album: {
       name: item.track.album.name,
-      release_date: item.track.album.release_date, // ← add this
+      release_date: item.track.album.release_date,
       images: item.track.album.images.slice(0, 1),
     },
   },
@@ -56,11 +56,12 @@ const loadPoolFromCache = () => {
 };
 
 // --- Parallel batch fetcher ---
-const fetchAllTracks = async (playlists, onProgress) => {
+const fetchAllTracks = async (playlists, onProgress, canceled) => {
   const BATCH_SIZE = 5;
   const allTracks = [];
 
   for (let i = 0; i < playlists.length; i += BATCH_SIZE) {
+    if (canceled.current) return [];
     const batch = playlists.slice(i, i + BATCH_SIZE);
     onProgress(
       `Loading playlists ${i + 1}–${Math.min(i + BATCH_SIZE, playlists.length)} of ${playlists.length}...`,
@@ -110,6 +111,9 @@ export default function SpotifyGuessingGame({
   const [loadingStatus, setLoadingStatus] = useState("");
   const [songPool, setSongPool] = useState([]);
 
+  const libraryCanceled = useRef(false);
+  const libraryLoading = useRef(false);
+
   const getRandomSong = async () => {
     if (loading || songPool.length === 0 || loadingLibrary) return;
     setLoading(true);
@@ -117,7 +121,6 @@ export default function SpotifyGuessingGame({
       const selectedSong =
         songPool[Math.floor(Math.random() * songPool.length)];
       setRandomSong(selectedSong);
-      // resetPlayer();
 
       if (selectedSong) {
         try {
@@ -142,73 +145,84 @@ export default function SpotifyGuessingGame({
     }
   };
 
-  const loadLibrary = async (canceled = { current: false }) => {
-    const cached = loadPoolFromCache();
-    if (cached) {
-      setSongPool(cached);
-      setLoadingStatus(`${cached.length} songs loaded from cache`);
-      return;
+  const loadLibrary = async () => {
+    // If already loading, cancel the previous run and wait for it to stop
+    if (libraryLoading.current) {
+      libraryCanceled.current = true;
+      while (libraryLoading.current) {
+        await new Promise((res) => setTimeout(res, 50));
+      }
+      libraryCanceled.current = false;
     }
 
-    setLoadingLibrary(true);
-    setLoadingStatus("Fetching playlists...");
+    libraryLoading.current = true;
 
-    const data = await fetchUserPlaylists();
-    if (canceled.current) return;
+    try {
+      const cached = loadPoolFromCache();
+      if (cached) {
+        setSongPool(cached);
+        setLoadingStatus(`${cached.length} songs loaded from cache`);
+        return;
+      }
 
-    const playlists = data.items;
-    setUserPlaylists(playlists);
+      setLoadingLibrary(true);
+      setLoadingStatus("Fetching playlists...");
 
-    const allTracks = await fetchAllTracks(playlists, setLoadingStatus);
-    if (canceled.current) return;
+      const data = await fetchUserPlaylists();
+      if (libraryCanceled.current) return;
 
-    const seen = new Set();
-    const pool = allTracks
-      .filter((item) => item.track)
-      .filter((item) => {
-        if (seen.has(item.track.id)) return false;
-        seen.add(item.track.id);
-        return true;
-      })
-      .map(slimTrack);
+      const playlists = data.items;
+      setUserPlaylists(playlists);
 
-    savePoolToCache(pool);
-    setSongPool(pool);
-    setLoadingStatus(`${pool.length} songs ready`);
-    setLoadingLibrary(false);
+      const allTracks = await fetchAllTracks(
+        playlists,
+        setLoadingStatus,
+        libraryCanceled,
+      );
+      if (libraryCanceled.current) return;
+
+      const seen = new Set();
+      const pool = allTracks
+        .filter((item) => item.track)
+        .filter((item) => {
+          if (seen.has(item.track.id)) return false;
+          seen.add(item.track.id);
+          return true;
+        })
+        .map(slimTrack);
+
+      savePoolToCache(pool);
+      setSongPool(pool);
+      setLoadingStatus(`${pool.length} songs ready`);
+      setLoadingLibrary(false);
+    } finally {
+      libraryLoading.current = false;
+      setLoadingLibrary(false)
+    }
   };
 
   const refreshLibrary = async () => {
+    libraryCanceled.current = true;
     localStorage.removeItem(CACHE_KEY);
-
-    // Stop playback and disconnect
-    try {
-      await pauseSong();
-    } catch (_) {}
+    try { await pauseSong(); } catch (_) {}
     disconnect();
     setRandomSong(null);
-
-    // Give the player time to fully disconnect before reloading
-    // await new Promise((res) => setTimeout(res, 1000));
-
     await loadLibrary();
-
-    // Give Spotify a moment before reconnecting
     await new Promise((res) => setTimeout(res, 500));
     reconnect();
   };
+
   useEffect(() => {
     if (!loggedIn) return;
     setTokenRefresher(refreshToken);
-    const canceled = { current: false };
-    loadLibrary(canceled);
+    loadLibrary();
     return () => {
-      canceled.current = true;
-      setLoadingLibrary(false);
+      libraryCanceled.current = true;
     };
   }, [loggedIn, refreshToken]);
 
   const handleLogoutClick = () => {
+    libraryCanceled.current = true;
     disconnect();
     handleLogout();
   };
@@ -225,16 +239,15 @@ export default function SpotifyGuessingGame({
         </button>
       </header>
 
-      {loadingLibrary ? (
+      {loadingLibrary || !deviceId ? (
         <div className="flex flex-col justify-center items-center mt-16 gap-2">
-          <p className="text-gray-600 text-lg">Loading your library...</p>
+          <p className="text-gray-600 text-lg">
+            {loadingLibrary ? "Loading your library..." : "Connecting player..."}
+          </p>
           <p className="text-gray-400 text-sm">{loadingStatus}</p>
         </div>
       ) : (
         <div>
-          <p style={{ color: deviceId ? "green" : "red" }}>
-            {deviceId ? "✓ Player Connected" : "⚠ Waiting for player..."}
-          </p>
           <p className="text-gray-500 text-sm px-2">{loadingStatus}</p>
 
           <div className="flex gap-2">
