@@ -71,7 +71,7 @@ export const useSpotifyPlayer = (spotifyToken) => {
   const disconnect = () => {
     clearInterval(intervalRef.current);
     player?.disconnect();
-    setPlayer(null);
+    // setPlayer(null);
     setDeviceId(null);
     setIsPlaying(false);
     setPosition(0);
