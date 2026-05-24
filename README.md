@@ -7,7 +7,7 @@ npm run start:server
 npm run start:client
 
 
-## Project Structure
+## Project Structure (In Progress)
 
 ```
 ├── server/                 # Node.js/Express backend
