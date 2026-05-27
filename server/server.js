@@ -59,7 +59,10 @@ app
 
 app.get("/login", (req, res) => {
   const state = generateRandomString(16);
-  res.cookie(stateKey, state);
+  res.cookie(stateKey, state, {
+    sameSite: "none", 
+    secure: true,
+  });
 
   const scope = [
     "streaming", // Web Playback SDK
@@ -88,6 +91,7 @@ app.get("/callback", (req, res) => {
   const state = req.query.state || null;
   const storedState = req.cookies ? req.cookies[stateKey] : null;
 
+  console.log("state:", state, "storedState:", storedState);
   if (state === null || state !== storedState) {
     console.error("State validation failed");
     res.redirect("/#" + querystring.stringify({ error: "state_mismatch" }));
