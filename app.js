@@ -11,8 +11,8 @@ const crypto = require("crypto");
 // Validate env vars on startup
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
-const redirect_uri = "http://127.0.0.1:8888/callback";
-const CLIENT_URL = "http://127.0.0.1:3000";
+const redirect_uri = process.env.REDIRECT_URI;
+const CLIENT_URL = process.env.CLIENT_URL;
 
 if (!client_id || !client_secret) {
   console.error("Missing CLIENT_ID or CLIENT_SECRET in .env");
