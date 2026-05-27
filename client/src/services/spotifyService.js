@@ -4,44 +4,26 @@ let tokenRefresher = null;
 
 export const setTokenRefresher = (fn) => { tokenRefresher = fn; };
 
-const withTokenRefresh = async (fn) => {
+const withTokenRefresh = async (fn, retries = 1) => {
+  if (!spotifyApi.getAccessToken()) return null;
+
   try {
     return await fn();
   } catch (err) {
-    // Parse error response to get actual status and message
-    let errorStatus = err.status;
-    let errorMessage = err.message;
-    
-    try {
-      if (err.response) {
-        const parsed = JSON.parse(err.response);
-        if (parsed.error) {
-          errorStatus = parsed.error.status || errorStatus;
-          errorMessage = parsed.error.message || errorMessage;
-        }
-      }
-    } catch (e) {
-      // If parsing fails, use original error
+    if (err instanceof SyntaxError) return null;
+    if (err.status === 404) throw err;
+    if (err.status === 429 && retries > 0) { // wait and retry once
+      const wait = (err.headers?.get?.("Retry-After") || 2) * 1000;
+      console.warn(`Rate limited, retrying in ${wait}ms...`);
+      await new Promise(r => setTimeout(r, wait));
+      return withTokenRefresh(fn, retries - 1);
     }
-    
-    const errorInfo = {
-      status: errorStatus,
-      message: errorMessage
-    };
-    
-    console.error('Service error:', errorInfo);
-    
-    // Re-throw with proper status code
-    const errorToThrow = new Error(errorMessage);
-    errorToThrow.status = errorStatus;
-    errorToThrow.originalError = err;
-    
-    if (errorStatus === 401 && tokenRefresher) {
+    console.error('Service error:', { status: err.status, message: err.message || err });
+    if (err.status === 401 && tokenRefresher) {
       const refreshed = await tokenRefresher();
       if (refreshed) return await fn();
     }
-    
-    throw errorToThrow;
+    throw err;
   }
 };
 

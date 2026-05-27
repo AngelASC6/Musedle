@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 
 export const useSpotifyPlayer = (spotifyToken) => {
+  
   const [player, setPlayer] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const intervalRef = useRef(null);
+
+  const tokenRef = useRef(spotifyToken)
+  useEffect(() => {
+    tokenRef.current = spotifyToken //keeps the ref in sync with the spotify token
+  },[spotifyToken])
 
   useEffect(() => {
     if (!spotifyToken) return;
@@ -16,8 +22,7 @@ export const useSpotifyPlayer = (spotifyToken) => {
 
       const newPlayer = new window.Spotify.Player({
         name: "Spotify Guessing Game Player",
-        getOAuthToken: (cb) =>
-          cb(localStorage.getItem("spotifyToken") || spotifyToken),
+        getOAuthToken: (cb) => cb(tokenRef.current),
         volume: 0.5,
       });
 

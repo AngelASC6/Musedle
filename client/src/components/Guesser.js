@@ -65,12 +65,22 @@ export default function Guesser({
               song={randomSong}
               handleChange={handleUpdateGuess}
             />
-          <div className="flex flex-none flex-col gap-2 justify-self-center">
-          {guesses.toReversed().map(({ id, guess, guessGenres }) => (
-            //todo: change prop into dict called genres {guess: [genres], song: [genres]}
-            <GuessFeedback key={id} song={randomSong} guess={guess} guessGenres={guessGenres} songGenres={songGenres} />
-          ))}
+        <div className="flex justify-center w-full px-2">
+          <div className="w-fit">
+            <div className="flex gap-4 mb-1">
+              {["Cover", "Title", "Artist", "Year", "Artist Genres", "Album"].map((label) => (
+                <p key={label} className="w-32 text-center text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  {label}
+                </p>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2">
+              {guesses.toReversed().map(({ id, guess, guessGenres }) => (
+                <GuessFeedback key={id} song={randomSong} guess={guess} guessGenres={guessGenres} songGenres={songGenres} />
+              ))}
+            </div>
           </div>
+        </div>
         </div>
       )}
     </div>

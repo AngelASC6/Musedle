@@ -210,13 +210,15 @@ export default function SpotifyGuessingGame({
 
   const refreshLibrary = async () => {
     libraryCanceled.current = true;
-    localStorage.removeItem(CACHE_KEY);
+    abortController.current?.abort()
     try { await pauseSong(); } catch (_) {}
     disconnect();
+    localStorage.removeItem(CACHE_KEY)
     setRandomSong(null);
-    await loadLibrary();
+
     await new Promise((res) => setTimeout(res, 500));
     reconnect();
+    await loadLibrary();
   };
 
   useEffect(() => {
