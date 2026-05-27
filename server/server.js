@@ -52,7 +52,6 @@ app
       httpOnly: true,   // JS can't read it — XSS protection
       sameSite: "none",
       secure: true,
-      sameSite: "lax",
       maxAge: 1000 * 60 * 60, // 1 hour
     },
   }));
