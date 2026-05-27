@@ -8,10 +8,7 @@
  */
 
 require("dotenv").config();
-
 const express = require("express");
-app.set("trust proxy", 1); // tells Express to trust Render's proxy
-
 
 const axios = require("axios");
 const cors = require("cors");
@@ -29,7 +26,7 @@ const generateRandomString = (length) => {
   let text = "";
   // TODO Modify to RegEx
   const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < length; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
@@ -38,6 +35,7 @@ const generateRandomString = (length) => {
 
 const stateKey = "spotify_auth_state";
 const app = express();
+app.set("trust proxy", 1); // tells Express to trust Render's proxy
 
 // Serve static files from client build folder
 app
