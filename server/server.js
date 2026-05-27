@@ -15,10 +15,12 @@ const cors = require("cors");
 const querystring = require("querystring");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const session = require("express-session") //securely stores the refresh token in a server side session
 
 const client_id = process.env.CLIENT_ID;
 const client_secret = process.env.CLIENT_SECRET;
 const redirect_uri = "http://127.0.0.1:8888/callback";
+const CLIENT_URL = "http://127.0.0.1:3000"
 
 const generateRandomString = (length) => {
   let text = "";
@@ -37,8 +39,21 @@ const app = express();
 // Serve static files from client build folder
 app
   .use(express.static(path.join(__dirname, "../client/build")))
-  .use(cors())
-  .use(cookieParser());
+  .use(cors({
+    origin: CLIENT_URL,
+    credentials: true, //allows cookies from cross origin
+  }))
+  .use(cookieParser())
+  .use(session({
+    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,   // JS can't read it — XSS protection
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60, // 1 hour
+    },
+  }));
 
 app.get("/login", (req, res) => {
   const state = generateRandomString(16);
@@ -97,34 +112,33 @@ app.get("/callback", (req, res) => {
     .post(authOptions.url, authOptions.data, { headers: authOptions.headers })
     .then((response) => {
       const { access_token, refresh_token } = response.data;
-      const userOptions = {
-        url: "https://api.spotify.com/v1/me",
-        headers: { Authorization: `Bearer ${access_token}` },
-      };
 
-      return axios
-        .get(userOptions.url, { headers: userOptions.headers })
-        .then(() => {
-          res.redirect(
-            "http://127.0.0.1:3000/#" +
-              querystring.stringify({
-                access_token,
-                refresh_token,
-              }),
-          );
-        });
+      //stores access tokens in session
+      req.session.access_token = access_token;
+      req.session.refresh_token = refresh_token;
+
+      res.redirect(CLIENT_URL)
     })
     .catch((error) => {
       console.error("Token exchange failed:", error.message);
-      res.redirect(
-        "http://127.0.0.1:3000/#" +
-          querystring.stringify({ error: "invalid_token" }),
-      );
+      res.redirect(`${CLIENT_URL}/?error=invalid_token`);
     });
 });
 
+app.get("/me", (req, res) => {
+  if (!req.session.access_token) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+  res.json({ access_token: req.session.access_token });
+});
+
 app.get("/refresh_token", (req, res) => {
-  const { refresh_token } = req.query;
+  const refresh_token = req.session.refresh_token;
+
+  if (!refresh_token) {
+    return res.status(401).json({ error: "No refresh token" });
+  }
+
   const authOptions = {
     url: "https://accounts.spotify.com/api/token",
     data: querystring.stringify({
@@ -132,9 +146,7 @@ app.get("/refresh_token", (req, res) => {
       refresh_token,
     }),
     headers: {
-      Authorization:
-        "Basic " +
-        Buffer.from(`${client_id}:${client_secret}`).toString("base64"),
+      Authorization: "Basic " + Buffer.from(`${client_id}:${client_secret}`).toString("base64"),
       "Content-Type": "application/x-www-form-urlencoded",
     },
   };
@@ -149,6 +161,14 @@ app.get("/refresh_token", (req, res) => {
       console.error("Token refresh failed:", error.message);
       res.status(400).send({ error: "token_refresh_failed" });
     });
+});
+
+//destroys session
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) console.error("Session destroy error:", err);
+    res.json({ ok: true });
+  });
 });
 
 const PORT = process.env.PORT || 8888;

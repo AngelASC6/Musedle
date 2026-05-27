@@ -4,6 +4,7 @@ import {
   setTokenRefresher,
 } from "./services/spotifyService";
 import SpotifyGuessingGame from './components/SpotifyGuessingGame.js';
+import LoginPage from './components/LoginPage.js';
 
 function App() {
   const { spotifyToken, loggedIn, refreshToken, logout } = useSpotifyAuth();
@@ -15,7 +16,7 @@ function App() {
 
 
   if (!loggedIn)
-    return <a href="http://127.0.0.1:8888/login">Login with Spotify</a>;
+    return <LoginPage/>;
 
   return (
     <div className="App min-h-screen">

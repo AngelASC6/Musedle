@@ -4,33 +4,25 @@ import SpotifyWebApi from "spotify-web-api-js";
 
 export const spotifyApi = new SpotifyWebApi();
 
-const getTokenFromUrl = () =>
-  window.location.hash
-    .substring(1)
-    .split("&")
-    .reduce((acc, item) => {
-      const [key, value] = item.split("=");
-      acc[key] = decodeURIComponent(value);
-      return acc;
-    }, {});
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL
+
 
 export const useSpotifyAuth = () => {
   const [spotifyToken, setSpotifyToken] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true)
 
   const setToken = (token) => {
     setSpotifyToken(token);
     spotifyApi.setAccessToken(token);
-    localStorage.setItem("spotifyToken", token);
   };
 
   const refreshToken = async () => {
-    const refresh = localStorage.getItem("spotifyRefreshToken");
-    if (!refresh) return false;
     try {
       const res = await fetch(
-        `http://127.0.0.1:8888/refresh_token?refresh_token=${refresh}`,
-      );
+        `${BACKEND_URL}/refresh_token`,{
+        credentials: "include" //attaches session cookies to request to prevent error from cross origin requests
+      });
       const data = await res.json();
       if (data.access_token) {
         setToken(data.access_token);
@@ -43,8 +35,7 @@ export const useSpotifyAuth = () => {
   };
 
   const logout = () => {
-    localStorage.removeItem("spotifyToken");
-    localStorage.removeItem("spotifyRefreshToken");
+    fetch(`${BACKEND_URL}/logout`, { method: "POST", credentials: "include" });
     spotifyApi.setAccessToken(null);
     setSpotifyToken("");
     setLoggedIn(false);
@@ -52,19 +43,19 @@ export const useSpotifyAuth = () => {
 
   useEffect(() => {
     const init = async () => {
-      const storedToken = localStorage.getItem("spotifyToken");
-      if (storedToken) {
-        setToken(storedToken);
-        setLoggedIn(true);
-        return;
-      }
-      const { access_token, refresh_token } = getTokenFromUrl();
-      if (access_token) {
-        setToken(access_token);
-        if (refresh_token)
-          localStorage.setItem("spotifyRefreshToken", refresh_token);
-        setLoggedIn(true);
-        window.location.hash = "";
+      try {
+        const res = await fetch(`${BACKEND_URL}/me`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const { access_token } = await res.json();
+          setToken(access_token);
+          setLoggedIn(true);
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+      } finally {
+        setLoading(false);
       }
     };
     init();

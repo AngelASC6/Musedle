@@ -56,7 +56,7 @@ const loadPoolFromCache = () => {
 };
 
 // --- Parallel batch fetcher ---
-const fetchAllTracks = async (playlists, onProgress, canceled) => {
+const fetchAllTracks = async (playlists, onProgress, canceled, signal) => {
   const BATCH_SIZE = 5;
   const allTracks = [];
 
@@ -67,7 +67,7 @@ const fetchAllTracks = async (playlists, onProgress, canceled) => {
       `Loading playlists ${i + 1}–${Math.min(i + BATCH_SIZE, playlists.length)} of ${playlists.length}...`,
     );
     const results = await Promise.all(
-      batch.map((p) => fetchPlaylistTracks(p.id)),
+      batch.map((p) => fetchPlaylistTracks(p.id, signal)), //signal is used to prevent multiple requests on reload
     );
     results.forEach((r) => allTracks.push(...r.items));
   }
@@ -113,6 +113,7 @@ export default function SpotifyGuessingGame({
 
   const libraryCanceled = useRef(false);
   const libraryLoading = useRef(false);
+  const abortController = useRef(null)
 
   const getRandomSong = async () => {
     if (loading || songPool.length === 0 || loadingLibrary) return;
@@ -149,12 +150,14 @@ export default function SpotifyGuessingGame({
     // If already loading, cancel the previous run and wait for it to stop
     if (libraryLoading.current) {
       libraryCanceled.current = true;
+      abortController.current?.abort() //cancel requests that are in the middle of running 
       while (libraryLoading.current) {
         await new Promise((res) => setTimeout(res, 50));
       }
       libraryCanceled.current = false;
     }
 
+    abortController.current = new AbortController(); 
     libraryLoading.current = true;
 
     try {
@@ -178,6 +181,7 @@ export default function SpotifyGuessingGame({
         playlists,
         setLoadingStatus,
         libraryCanceled,
+        abortController.current.signal
       );
       if (libraryCanceled.current) return;
 
@@ -195,6 +199,9 @@ export default function SpotifyGuessingGame({
       setSongPool(pool);
       setLoadingStatus(`${pool.length} songs ready`);
       setLoadingLibrary(false);
+    }  catch (err) {
+        if (err.name === "AbortError") return; // silent err for intentional cancel
+        console.error("Library load failed:", err);
     } finally {
       libraryLoading.current = false;
       setLoadingLibrary(false)
@@ -218,6 +225,7 @@ export default function SpotifyGuessingGame({
     loadLibrary();
     return () => {
       libraryCanceled.current = true;
+      abortController.current?.abort();
     };
   }, [loggedIn, refreshToken]);
 
