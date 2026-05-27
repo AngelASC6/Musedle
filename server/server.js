@@ -10,6 +10,9 @@
 require("dotenv").config();
 
 const express = require("express");
+app.set("trust proxy", 1); // tells Express to trust Render's proxy
+
+
 const axios = require("axios");
 const cors = require("cors");
 const querystring = require("querystring");
